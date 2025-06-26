@@ -2,3 +2,8 @@
 Debug/
 Release/
 .build
+.project
+.cproject
+.settings/
+.metadata/
+.classpath
