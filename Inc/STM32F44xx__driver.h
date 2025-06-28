@@ -82,6 +82,10 @@
 
 #define ENABLE 							1
 #define DISABLE							0
+#define SET								ENABLE
+#define RESET							DISABLE
+#define FLAG_SET						ENABLE
+#define FLAG_RESET						DISABLE
 
 typedef struct{
 	volatile uint32_t MODER;			/*GPIO port mode register... Address offset: 0x00*/
@@ -328,6 +332,18 @@ typedef struct{
 #define CR_OVR							6
 #define CR_BSY							7
 #define CR_FRE							8
+
+/*
+ * Status flags for SPI
+ */
+#define SR_FRE							(0x1 << CR_FRE)
+#define SR_BSY							(0x1 << CR_BSY)
+#define SR_OVR							(0x1 << CR_MODF)
+#define SR_CRCERR						(0x1 << CR_CRCERR)
+#define SR_UDR							(0x1 << CR_UDR)
+#define SR_CHSIDE						(0x1 << CR_CHSIDE)
+#define SR_TXE							(0x1 << CR_TXE)
+#define SR_RXNE							(0x1 << CR_RXNE)
 
 /*
  * IRQ number for EXTI lines

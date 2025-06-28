@@ -8,6 +8,13 @@
 #include "STM32F44xxSPI__driver.h"
 #include "STM32F44xx__driver.h"
 
+uint8_t checkStatusFlag(SPI_RegDef_t* pSPIx, uint32_t flagName){
+	if(pSPIx->SR & flagName){
+		return FLAG_SET;
+	}
+	return FLAG_RESET;
+}
+
 void SPI_PeriClockControl(SPI_RegDef_t* pSPIx,uint8_t EnorDi){
 	if(EnorDi == ENABLE){
 		if(pSPIx == SPI1){
@@ -97,8 +104,39 @@ void spiDeInit(SPI_RegDef_t* pSPIx){
 }
 
 void SPI_SendData(SPI_RegDef_t* pSPIx, uint8_t *pTxBuffer, uint32_t Len){
-	while(Len |= 0){
-
+	while(Len > 0){
+		while(checkStatusFlag(pSPIx,SR_TXE)){
+			if(pSPIx->CR1 & (0x1 << CR_DFF)){
+				pSPIx->DR = *((uint16_t*)pTxBuffer);
+				(uint16_t*)pTxBuffer++;
+				Len--;
+				Len--;
+			}else{
+				pSPIx->DR = *pTxBuffer;
+				pTxBuffer++;
+				Len--;
+			}
+		}
+	}
+}
+void setSSI(SPI_RegDef_t* pSPIx, uint8_t en_di){
+	if(en_di == ENABLE){
+		pSPIx->CR1 |= (0x1 << CR_SSI);
+	}else
+		pSPIx->CR1 &= ~(0x1 << CR_SSI);
+}
+void setSSOE(SPI_RegDef_t* pSPIx, uint8_t en_di){
+	if(en_di == ENABLE){
+		pSPIx->CR2 |= (0x1 << CR_SSOE);
+	}else
+		pSPIx->CR2 &= ~(0x1 << CR_SSOE);
+}
+void spiEnable(SPI_RegDef_t* pSPIx, uint8_t en_di){
+	if(en_di == ENABLE){
+		pSPIx->CR1 |= (0x1 << CR_SPE);
+	}else{
+		while(checkStatusFlag(pSPIx,SR_BSY));
+		pSPIx->CR1 &= ~(0x1 << CR_SPE);
 	}
 }
 

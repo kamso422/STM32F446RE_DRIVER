@@ -35,6 +35,10 @@ void SPI_PeriClockControl(SPI_RegDef_t* pSPIx,uint8_t EnorDi);
 void spiInit(SPI_Handle_t* handle);
 void spiDeInit(SPI_RegDef_t* pSPIx);
 
+void setSSI(SPI_RegDef_t* pSPIx, uint8_t en_di);
+void setSSOE(SPI_RegDef_t* pSPIx, uint8_t en_di);
+void spiEnable(SPI_RegDef_t* pSPIx, uint8_t en_di);
+
 void SPI_SendData(SPI_RegDef_t* pSPIx, uint8_t *pTxBuffer, uint32_t Len);
 void SPI_ReceiveData(SPI_RegDef_t* pSPIx, uint8_t *pRxBuffer, uint32_t Len);
 
