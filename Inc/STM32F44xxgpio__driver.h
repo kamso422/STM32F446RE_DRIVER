@@ -30,6 +30,7 @@ typedef struct{
 	gpio_config_t gpioConfigure;
 }gpio_handle_t;
 
+#define GPIO_PIN_NO_0			0
 #define GPIO_PIN_NO_1			1
 #define GPIO_PIN_NO_2			2
 #define GPIO_PIN_NO_3			3

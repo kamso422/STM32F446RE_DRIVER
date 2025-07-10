@@ -104,6 +104,7 @@ void spiDeInit(SPI_RegDef_t* pSPIx){
 }
 
 void SPI_SendData(SPI_RegDef_t* pSPIx, uint8_t *pTxBuffer, uint32_t Len){
+	uint16_t data = pSPIx->DR;
 	while(Len > 0){
 		while(checkStatusFlag(pSPIx,SR_TXE)){
 			if(pSPIx->CR1 & (0x1 << CR_DFF)){
@@ -112,6 +113,7 @@ void SPI_SendData(SPI_RegDef_t* pSPIx, uint8_t *pTxBuffer, uint32_t Len){
 				Len--;
 				Len--;
 			}else{
+				pSPIx->DR &= ~(0xffffU);//clear data
 				pSPIx->DR = *pTxBuffer;
 				pTxBuffer++;
 				Len--;

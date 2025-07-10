@@ -26,9 +26,11 @@
  * Create a function for sending out data using
  * the blocking method
  */
+//void disableClock(gpio_handle_t* handle);
 
 int main(void)
 {
+	RESET_SPI1_REG();
     char* TxBuffer = "Hello World";
     gpio_handle_t SPI_Pin;
     memset(&SPI_Pin,0,sizeof(gpio_handle_t));
@@ -42,10 +44,14 @@ int main(void)
     SPI_Pin.gpioConfigure.ALTF = AF5;
     SPI_Pin.gpioConfigure.OSPEED = GPIO_LOW_SPEED;
     SPI_Pin.gpioConfigure.PUPD = GPIO_NO_PUPD;
+    SPI_Pin.gpioConfigure.OTYPE = GPIO_PP;
 
     //Set up the MOSI pin
     SPI_Pin.gpioConfigure.pinNumber = GPIO_PIN_NO_7;
     gpioInit(&SPI_Pin);
+    //Configure the MISO pin
+    //SPI_Pin.gpioConfigure.pinNumber = GPIO_PIN_NO_6;
+    //gpioInit(&SPI_Pin);
     //Set up the clock pin
     SPI_Pin.gpioConfigure.pinNumber = GPIO_PIN_NO_5;
     gpioInit(&SPI_Pin);
@@ -60,13 +66,13 @@ int main(void)
     SPI_PeriClockControl(SPI1, ENABLE);
     //Initialize the SPI peripheral
     theSpi.pSPIx = SPI1;
-    theSpi.SPIConfig.SPI_BusConfig = SPI_BUS_CONFIG_FD;
+    theSpi.SPIConfig.SPI_BusConfig = SPI_BUS_CONFIG_SIMPLEX_TXONLY;
     theSpi.SPIConfig.SPI_CPHA = SPI_CPHA1;
     theSpi.SPIConfig.SPI_CPOL = SPI_CPOL0;
     theSpi.SPIConfig.SPI_DFF = DFF8;
     theSpi.SPIConfig.SPI_DeviceMode = MASTER;
     theSpi.SPIConfig.SPI_SSM = SSM_HW;
-    theSpi.SPIConfig.SPI_SclkSpeed = SPI_CLK_SPEED_DIV2;
+    theSpi.SPIConfig.SPI_SclkSpeed = SPI_CLK_SPEED_DIV32;
 
     spiInit(&theSpi);
     setSSOE(SPI1, ENABLE);
@@ -75,4 +81,6 @@ int main(void)
     SPI_SendData(SPI1, (uint8_t*)TxBuffer, strlen(TxBuffer)+1);
 
     spiEnable(SPI1, DISABLE);
+    while(1);
 }
+
