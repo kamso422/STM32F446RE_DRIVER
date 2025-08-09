@@ -8,6 +8,10 @@
 #include "STM32F44xxSPI__driver.h"
 #include "STM32F44xx__driver.h"
 
+static void spi_txe_interrupt_handle(SPI_Handle_t* pSPIHandle);
+static void spi_rxne_interrupt_handle(SPI_Handle_t* pSPIHandle);
+static void spi_ovr_err_interrupt_handle(SPI_Handle_t* pSPIHandle);
+
 uint8_t checkStatusFlag(SPI_RegDef_t* pSPIx, uint32_t flagName){
 	if(pSPIx->SR & flagName){
 		return FLAG_SET;
@@ -104,22 +108,57 @@ void spiDeInit(SPI_RegDef_t* pSPIx){
 }
 
 void SPI_SendData(SPI_RegDef_t* pSPIx, uint8_t *pTxBuffer, uint32_t Len){
-	uint16_t data = pSPIx->DR;
 	while(Len > 0){
-		while(checkStatusFlag(pSPIx,SR_TXE)){
-			if(pSPIx->CR1 & (0x1 << CR_DFF)){
-				pSPIx->DR = *((uint16_t*)pTxBuffer);
-				(uint16_t*)pTxBuffer++;
-				Len--;
-				Len--;
-			}else{
-				pSPIx->DR &= ~(0xffffU);//clear data
-				pSPIx->DR = *pTxBuffer;
-				pTxBuffer++;
-				Len--;
-			}
+		while(!checkStatusFlag(pSPIx,SR_TXE));
+		if(pSPIx->CR1 & (0x1 << CR_DFF)){
+			pSPIx->DR = *((uint16_t*)pTxBuffer);
+			(uint16_t*)pTxBuffer++;
+			Len--;
+			Len--;
+		}else{
+			pSPIx->DR = *pTxBuffer;
+			pTxBuffer++;
+			Len--;
 		}
 	}
+}
+uint8_t SPI_SendDataIT(SPI_Handle_t* pSPIHandle, uint8_t *pTxBuffer, uint32_t Len){
+	uint8_t state = pSPIHandle->TxState;
+	if(state != SPI_BUSY_IN_TX){
+		pSPIHandle->pTxBuffer = pTxBuffer;
+		pSPIHandle->TxLen = Len;
+
+		pSPIHandle->TxState = SPI_BUSY_IN_TX;
+		pSPIHandle->pSPIx->CR2 |= (1 << CR_TXEIE);
+	}
+	return state;
+}
+
+void SPI_ReceiveData(SPI_RegDef_t* pSPIx, uint8_t *pRxBuffer, uint32_t Len){
+	while(Len > 0){
+		while(!checkStatusFlag(pSPIx,SR_RXNE));
+		if(pSPIx->CR1 & (0x1 << CR_DFF)){
+			*((uint16_t*)pRxBuffer) = pSPIx->DR;
+			(uint16_t*)pRxBuffer++;
+			Len--;
+			Len--;
+		}else{
+			*pRxBuffer = pSPIx->DR;
+			pRxBuffer++;
+			Len--;
+		}
+	}
+}
+uint8_t SPI_ReceiveDataIT(SPI_Handle_t* pSPIHandle, uint8_t *pRxBuffer, uint32_t Len){
+	uint8_t state = pSPIHandle->RxState;
+	if(state != SPI_BUSY_IN_RX){
+		pSPIHandle->pRxBuffer = pRxBuffer;
+		pSPIHandle->RxLen = Len;
+
+		pSPIHandle->RxState = SPI_BUSY_IN_RX;
+		pSPIHandle->pSPIx->CR2 |= (1 << CR_RXNEIE);
+	}
+	return state;
 }
 void setSSI(SPI_RegDef_t* pSPIx, uint8_t en_di){
 	if(en_di == ENABLE){
@@ -139,6 +178,62 @@ void spiEnable(SPI_RegDef_t* pSPIx, uint8_t en_di){
 	}else{
 		while(checkStatusFlag(pSPIx,SR_BSY));
 		pSPIx->CR1 &= ~(0x1 << CR_SPE);
+	}
+}
+void SPI_IRQConfig(uint8_t IRQNumber,uint8_t ENorDi){
+	if(ENorDi == ENABLE){
+		if(IRQNumber < 31){
+			*NVIC_ISER0 |= (0x1 << IRQNumber);
+		}else if(IRQNumber > 31 && IRQNumber < 64){
+			*NVIC_ISER1 |= (0x1 << (IRQNumber % 32));
+		}else if(IRQNumber > 63 && IRQNumber < 96){
+			*NVIC_ISER2 |= (0x1 << (IRQNumber % 64));
+		}else if(IRQNumber > 95 && IRQNumber < 128){
+			*NVIC_ISER3 |= (0x1 << (IRQNumber % 96));
+		}
+	}else{
+		if(IRQNumber < 31){
+			*NVIC_ICER0 |= (0x1 << IRQNumber);
+		}else if(IRQNumber > 31 && IRQNumber < 64){
+			*NVIC_ICER1 |= (0x1 << (IRQNumber % 32));
+		}else if(IRQNumber > 63 && IRQNumber < 96){
+			*NVIC_ICER2 |= (0x1 << (IRQNumber % 64));
+		}else if(IRQNumber > 95 && IRQNumber < 128){
+			*NVIC_ICER3 |= (0x1 << (IRQNumber % 96));
+		}
+	}
+}
+void SPI_IRQPriorityConfig(uint8_t IRQNUmber, uint8_t IRQpriority){
+	uint8_t iprx = IRQNUmber / 4;
+	uint8_t iprSection = IRQNUmber % 4;
+	uint8_t shiftNo = iprSection*8 + 4;
+	*(NVIC_IPR0 + iprx) |= IRQpriority << shiftNo;
+}
+
+void SPI_IRQHandling(SPI_Handle_t* pSPIHandle){
+	uint8_t temp1, temp2;
+	//first let check for TXE
+	temp1 = checkStatusFlag(pSPIHandle->pSPIx,SR_TXE);
+	temp2 = pSPIHandle->pSPIx->CR2 && (1 << CR_TXEIE);
+
+	if(temp1 && temp2){
+		spi_txe_interrupt_handle(pSPIHandle);
+	}
+
+	//Check for RXNE
+	temp1 = checkStatusFlag(pSPIHandle->pSPIx,SR_RXNE);
+	temp2 = pSPIHandle->pSPIx->CR2 && (1 << CR_RXNEIE);
+
+	if(temp1 && temp2){
+		spi_rxne_interrupt_handle(pSPIHandle);
+	}
+
+	//check for ovr error
+	temp1 = checkStatusFlag(pSPIHandle->pSPIx,CR_OVR);
+	temp2 = pSPIHandle->pSPIx->CR2 && (1 << CR_ERRIE);
+
+	if(temp1 && temp2){
+		spi_ovr_err_interrupt_handle(pSPIHandle);
 	}
 }
 

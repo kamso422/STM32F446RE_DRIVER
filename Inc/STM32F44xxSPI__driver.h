@@ -28,6 +28,12 @@ typedef struct{
 typedef struct{
 	SPI_RegDef_t *pSPIx; /*!<Holds the base address of SPIx(x:0,1,2..) peripherals*/
 	SPI_Config_t SPIConfig;
+	uint8_t *pTxBuffer; /*!<To store the app. Tx buffer address>*/
+	uint8_t *pRxBuffer; /*!<To store the app. Rx buffer addres>*/
+	uint32_t TxLen; /*!<To store Tx len>*/
+	uint32_t RxLen; /*!<To store Rx len>*/
+	uint8_t TxState; /*!<To store Tx state>*/
+	uint8_t RxState; /*!<To store Rx state>*/
 }SPI_Handle_t;
 
 void SPI_PeriClockControl(SPI_RegDef_t* pSPIx,uint8_t EnorDi);
@@ -42,8 +48,11 @@ void spiEnable(SPI_RegDef_t* pSPIx, uint8_t en_di);
 void SPI_SendData(SPI_RegDef_t* pSPIx, uint8_t *pTxBuffer, uint32_t Len);
 void SPI_ReceiveData(SPI_RegDef_t* pSPIx, uint8_t *pRxBuffer, uint32_t Len);
 
+uint8_t SPI_SendDataIT(SPI_Handle_t* pSPIHandle, uint8_t *pTxBuffer, uint32_t Len);
+uint8_t SPI_ReceiveDataIT(SPI_Handle_t* pSPIHandle, uint8_t *pRxBuffer, uint32_t Len);
+
 void SPI_IRQConfig(uint8_t IRQNumber,uint8_t ENorDi);
-void SPI_IRQHandling(uint8_t PinNumber);
+void SPI_IRQHandling(SPI_Handle_t* pSPIHandle);
 void SPI_IRQPriorityConfig(uint8_t IRQNUmber, uint8_t IRQpriority);
 
 #define SLAVE 							0
@@ -80,6 +89,20 @@ void SPI_IRQPriorityConfig(uint8_t IRQNUmber, uint8_t IRQpriority);
  */
 #define SPI_CPHA1						0
 #define SPI_CPHA2						1
+
+/*
+ * SPI state
+ */
+#define SPI_READY 						0
+#define SPI_BUSY_IN_RX					1
+#define SPI_BUSY_IN_TX					2
+
+/*
+ * Possible SPI application events
+ */
+#define SPI_EVENT_TX_CMPLT				1
+#define SPI_EVENT_RX_CMPLT				2
+#define SPI_EVENT_OVRERR				3
 
 /*
  * @Clock polarity

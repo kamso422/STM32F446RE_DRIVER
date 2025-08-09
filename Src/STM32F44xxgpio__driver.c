@@ -114,12 +114,14 @@ void gpioInit(gpio_handle_t* handle){
 			EXTI->RTSR |= temp;
 			EXTI->FTSR |= temp;
 		}
+		//Enable the clock for the SYSCFG peripheral
+		SYSCFG_PCLK_EN();
 		//Setting up the exact GPIO port
 		if(handle->gpioConfigure.pinNumber <= 3){
 			temp = 0;
 			//temp |= num << (4 * handle->gpioConfigure.pinNumber);
 			SYSCFG->EXTICR[0] &= ~(0xFU) << (4 * handle->gpioConfigure.pinNumber);//clearing register
-			SYSCFG->EXTICR[0] |= (4 * handle->gpioConfigure.pinNumber);
+			SYSCFG->EXTICR[0] |= num << (4 * handle->gpioConfigure.pinNumber);
 		}else if(handle->gpioConfigure.pinNumber > 3 && handle->gpioConfigure.pinNumber <= 7){
 			temp = 0;
 			temp |= num << (4 * (handle->gpioConfigure.pinNumber % 4));

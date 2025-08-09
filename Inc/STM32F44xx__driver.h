@@ -9,6 +9,7 @@
 #define STM32F44XX__DRIVER_H_
 
 #include <stdint.h>
+#include <stddef.h>
 /*
  *Define memory base addresses
  */
@@ -240,6 +241,11 @@ typedef struct{
 #define GPIOF_PCLK_EN()					(RCC->AHB1ENR |= (1 << 5))
 #define GPIOG_PCLK_EN()					(RCC->AHB1ENR |= (1 << 6))
 #define GPIOH_PCLK_EN()					(RCC->AHB1ENR |= (1 << 7))
+
+/*
+ * Enabling the clock for the SYSCFG peripheral
+ */
+#define SYSCFG_PCLK_EN()				(RCC->APB2ENR |= (1 << 14));
 
 /*
  * Enabling SPI peripheral clock
